@@ -1,0 +1,39 @@
+---
+- name: Mettre à jour et déployer Nginx
+  hosts: webservers         # cible le groupe 'webservers' du inventory
+  become: yes              # exécuter les tâches en root (sudo)
+  vars:
+    site_content: "<h1>Bienvenue — Nginx déployé par Ansible</h1>"
+
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
+
+  tasks:
+    - name: Update apt cache and upgrade packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: present
+      notify: restart nginx   # si l'installation modifie l'état, déclenche le handler
+
+    - name: Ensure nginx is started and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Deploy index.html
+      copy:
+        content: "{{ site_content }}"    # contenu défini par la variable site_content ci-dessus
+        dest: /var/www/html/index.html
+        owner: www-data
+        group: www-data
+        mode: '0644'
+      notify: restart nginx
